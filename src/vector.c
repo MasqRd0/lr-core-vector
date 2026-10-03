@@ -2,7 +2,6 @@
 
 #include "vector.h"
 #include<stdlib.h>
-int *buf=NULL;
 int vector_init(vector *v, size_t capacity) {
 	if(capacity==0)
 	{
@@ -20,18 +19,16 @@ int vector_init(vector *v, size_t capacity) {
 	}
 	else
 	{
-		buf=malloc(capacity*sizeof(int));
-		if(buf==NULL)
+		v->data=malloc(capacity*sizeof(int));
+		if(v->data==NULL)
 		{
-			v->data=NULL;
 			v->end=NULL;
 			v->cap=NULL;
-			free(buf);
 			return -1;			
 		}
-		v->data=buf;
-		v->cap=buf+capacity;
-		v->end=buf;
+
+		v->cap=(v->data)+capacity;
+		v->end=v->data;
 	}
 	
     return 0;
@@ -39,11 +36,10 @@ int vector_init(vector *v, size_t capacity) {
 
 void vector_destroy(vector *v)
 {
-	v->data=NULL;
 	v->cap=NULL;
 	v->end=NULL;
-	free(buf);
-	buf=NULL;
+	free(v->data);
+	v->data=NULL;
 }
 
 size_t size(const vector *v) {
@@ -61,61 +57,59 @@ int empty(const vector *v) {
 
 int get(const vector *v, size_t index, int *out) {
     if(index>=size(v)) return -1;
-    else if(index<=0) *out=*buf;
-	else *out=*(buf+index);
+    else if(index<=0) *out=*v->data;
+	else *out=*((v->data)+index);
     return 0;
 }
 
 int set(vector *v, size_t index, int value) {
     if(index>=size(v)) return -1;
-	else if(index<=0) *buf=value;
-	*(buf+index)=value;
+	else if(index<=0) *v->data=value;
+	*((v->data)+index)=value;
     return 0;
 }
 
 int front(const vector *v, int *out) {
 	if(empty(v)) return -1;
-	*out=*(buf);
+	*out=*v->data;
     return 0;
 }
 
 int back(const vector *v, int *out) {
     if(empty(v)) return -1;
-    *out=*(buf+size(v)-1);
+    *out=*((v->data)+size(v)-1);
 	return 0;
 }
 
 int push_back(vector *v, int value) {
     if(capacity(v)==0) 
 	{
-		int *tmp=realloc(buf,(capacity(v)+1)*sizeof(int));
+		int *tmp=realloc(v->data,(capacity(v)+1)*sizeof(int));
 		if(tmp==NULL) return -1;
 		else
 		{
-			buf=tmp;
-			*buf=value;
-			v->end=buf+1;
-			v->cap=buf+1;
-			v->data=buf;
+			v->data=tmp;
+			*v->data=value;
+			v->end=v->data+1;
+			v->cap=v->data+1;
 		}
 	}
     else if(capacity(v)>size(v))
 	{
-		*(buf+size(v))=value;
+		*(v->data+size(v))=value;
 		(v->end)++;
 	}
     else
     {
 		if(2*capacity(v)>SIZE_MAX/sizeof(int)) return -1;
-		int *tmp=realloc(buf,2*capacity(v)*sizeof(int));
+		int *tmp=realloc(v->data,2*capacity(v)*sizeof(int));
 		if(tmp==NULL) return -1;
 		else
 		{
-			buf=tmp;
-			v->cap=buf+2*capacity(v);
-			*(buf+size(v))=value;
-			v->end=buf+size(v)+1;
-			v->data=buf;
+			v->cap=tmp+2*capacity(v);
+			*(tmp+size(v))=value;
+			v->end=tmp+size(v)+1;
+			v->data=tmp;
 		}
 		
 	}
@@ -135,14 +129,13 @@ int reserve(vector *v, size_t new_capacity) {
 		return -1;
 	else
 	{
-		int *tmp=realloc(buf,new_capacity*sizeof(int));
+		int *tmp=realloc(v->data,new_capacity*sizeof(int));
 		if(tmp==NULL) return -1;
 		else
 		{
-			buf=tmp;
-			v->cap=buf+new_capacity;
-			v->end=buf+size(v);
-			v->data=buf;
+			v->end=tmp+size(v);
+			v->cap=tmp+new_capacity;
+			v->data=tmp;
 		}
 	}
 	return 0;
@@ -151,21 +144,21 @@ int reserve(vector *v, size_t new_capacity) {
 int shrink_to_fit(vector *v) {
 	if(size(v)==0)
 	{
-		v->data=NULL;
 		v->end=NULL;
 		v->cap=NULL;
-		free(buf);
-		buf=NULL;
+		free(v->data);
+		v->data=NULL;
 		return 0;
 	}
 	else
 	{
-		int *tmp=realloc(buf,size(v)*sizeof(int));
+		int *tmp=realloc(v->data,size(v)*sizeof(int));
 		if(tmp==NULL) return -1;
 		else
 		{
-			buf=tmp;
-			(v->cap)=(v->end);
+			v->end=tmp+size(v);
+			v->data=tmp;
+			v->cap=v->end;
 			return 0;
 		}
 	}
@@ -173,5 +166,5 @@ int shrink_to_fit(vector *v) {
 }
 
 void clear(vector *v) {
-	(v->end)=(v->data);
+	v->end=v->data;
 }
